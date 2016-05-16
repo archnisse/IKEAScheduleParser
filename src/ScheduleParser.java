@@ -24,30 +24,94 @@ import org.apache.pdfbox.util.PDFTextStripper;
 public class ScheduleParser {
 
 	ScheduleParser(String filePath) {
-		String pdfText = "";
-
-		PDFTextStripper pdfStripper = null;
-		PDDocument pdDoc = null;
-		COSDocument cosDoc = null;
-		File file = new File(filePath);
-		try {
-			PDFParser parser = new PDFParser(new FileInputStream(file));
-			parser.parse();
-			cosDoc = parser.getDocument();
-			pdfStripper = new PDFTextStripper();
-			pdDoc = new PDDocument(cosDoc);
-			pdfStripper.setStartPage(1);
-			pdfStripper.setEndPage(5);
-			String parsedText = pdfStripper.getText(pdDoc);
-			// System.out.println(parsedText);
-			pdfText = parsedText;
-		} catch (IOException e) {
-			e.printStackTrace();
-			return;
-		}
-
+		
+		String pdfText = readPdf(filePath);
 		// Extract the data from the string and create a list of schedule
 		// classes.
+		ArrayList<Schedule> schedule = parsePdfText(pdfText);
+		
+		System.out.println("Collected " + schedule.size() + " basic events.");
+		
+		String newFilePath = generateNewFilePath(filePath);
+		
+		writeScheduleFile(schedule, newFilePath);
+
+	}
+	
+	private void writeScheduleFile(ArrayList<Schedule> schedule, String filePath) {
+		try {
+			FileWriter writer = new FileWriter(filePath);
+			writer.append("Subject,");
+			writer.append("Start Date,");
+			writer.append("Start Time,");
+			writer.append("End Date,");
+			writer.append("End Time");
+			writer.append("\n");
+			/*
+			 * Subject
+				Namnet på händelsen, krävs.
+				Exempel: Slutprov
+				Start Date
+				Den första dagen för händelsen, krävs.
+				Exempel: 05/30/2020
+				Start Time
+				Tiden då händelsen börjar.
+				Exempel: 10:00 AM
+				End Date
+				Den sista dagen för händelsen.
+				Exempel: 05/30/2020
+				End Time
+				Tiden då händelsen slutar.
+				Exempel: 1:00 PM
+			 */
+			
+			for (Schedule sc : schedule) {
+				writer.append("KMD" + ",");
+				writer.append(sc.date.toGoogleCalendarString() + ",");
+				writer.append(sc.getGoogleCalendarStartTime() + ",");
+				writer.append(sc.date.toGoogleCalendarString() + ",");
+				writer.append(sc.getGoogleCalendarEndTime());
+				writer.append("\n");
+				
+			}
+
+			// generate whatever data you want
+
+			writer.flush();
+			writer.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private String generateNewFilePath(String oldFilePath) {
+		String newFilePath;
+		String[] parts = oldFilePath.split("/");
+		
+		String path = "";
+		for (int i = 0; i < parts.length-1; i++) {
+			path += parts[i] + "/";
+		}
+		
+		// The name of the file excluding the path
+		String oldFileName = parts[parts.length-1];
+		
+		// Validate pdf file extension
+		String pdf = oldFileName.substring(oldFileName.length()-4, oldFileName.length());
+		if (pdf.equals(".pdf")) {
+			String newFileName = oldFileName.substring(0, oldFileName.length()-4);
+			newFileName += "_Google-Calendar.csv";
+			newFilePath = path + newFileName;
+		} else {
+			// Something odd with filename, give some default name.
+			String newFileName = "schema.csv";
+			newFilePath = path + newFileName;
+		}
+
+		return newFilePath;
+	}
+	
+	private ArrayList<Schedule> parsePdfText(String pdfText) {
 		ArrayList<Schedule> schedule = new ArrayList<Schedule>();
 
 		// Separate the different lines of the text
@@ -78,32 +142,43 @@ public class ScheduleParser {
 				schedule.add(event);
 			}
 		}
-		System.out.println("Collected " + schedule.size() + " basic events.");
-
+		return schedule;
+	}
+	
+	private String readPdf(String filePath) {
+		// Validate pdf
+		String newFilePath;
+		String[] parts = filePath.split("/");
+		
+		// The name of the file excluding the path
+		String oldFileName = parts[parts.length-1];
+		
+		// Validate pdf file extension
+		String pdf = oldFileName.substring(oldFileName.length()-4, oldFileName.length());
+		if (!pdf.equals(".pdf")) {
+			System.err.println("This is not a pdf file.");
+			return "";
+		}
+		
+		
+		PDFTextStripper pdfStripper = null;
+		PDDocument pdDoc = null;
+		COSDocument cosDoc = null;
+		File file = new File(filePath);
 		try {
-			FileWriter writer = new FileWriter("schema.csv");
-
-			writer.append("DisplayName");
-			writer.append(',');
-			writer.append("Age");
-			writer.append('\n');
-
-			writer.append("MKYONG");
-			writer.append(',');
-			writer.append("26");
-			writer.append('\n');
-
-			writer.append("YOUR NAME");
-			writer.append(',');
-			writer.append("29");
-			writer.append('\n');
-
-			// generate whatever data you want
-
-			writer.flush();
-			writer.close();
+			PDFParser parser = new PDFParser(new FileInputStream(file));
+			parser.parse();
+			cosDoc = parser.getDocument();
+			pdfStripper = new PDFTextStripper();
+			pdDoc = new PDDocument(cosDoc);
+			pdfStripper.setStartPage(1);
+			pdfStripper.setEndPage(5);
+			String parsedText = pdfStripper.getText(pdDoc);
+			// System.out.println(parsedText);
+			return parsedText;
 		} catch (IOException e) {
 			e.printStackTrace();
+			return "";
 		}
 	}
 
@@ -124,11 +199,34 @@ public class ScheduleParser {
 
 	private class Schedule {
 
-		String day, start_time, end_time, description, sum_time;
+		String subject, day, start_time, end_time, description, sum_time;
 		Date date;
 
 		Schedule() {
 
+		}
+		
+		public String getGoogleCalendarStartTime() {
+			return getTimeFormat(start_time);
+		} 
+		
+		public String getGoogleCalendarEndTime() {
+			return getTimeFormat(end_time);
+		}
+		
+		private String getTimeFormat(String time) {
+			boolean pm = false;
+			String[] parts = time.split(":");
+			int hour = Integer.parseInt(parts[0]);
+			if (hour > 12) {
+				hour = hour - 12;
+				pm = true;
+			}
+			if (pm) {
+				return hour + ":" + parts[1] + " PM";
+			} else {
+				return time + " AM";
+			} 
 		}
 	}
 
@@ -153,6 +251,10 @@ public class ScheduleParser {
 			}
 		}
 
+		public String toGoogleCalendarString() {
+			return month + "/" + day + "/" + year;
+		}
+		
 		public String toString() {
 			return year + "-" + month + "-" + day;
 		}
