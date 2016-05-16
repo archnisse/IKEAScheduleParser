@@ -36,6 +36,7 @@ public class FileDropWindow {
                 JFrame frame = new JFrame("Testing");
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.setLayout(new BorderLayout());
+                //frame.setSize(500, 400);
                 frame.add(new DropPane());
                 frame.pack();
                 frame.setLocationRelativeTo(null);
@@ -58,15 +59,23 @@ public class FileDropWindow {
         public DropPane() {
 
             setLayout(new GridBagLayout());
+            setSize(500, 200);
+            //JTextArea jta = new JTextArea(500, 400);
+            //add(jta);
+            
+            //jta.setText("Dra hit och släpp din schema-fil från IKEA. \n Programmet kommer att generera en csv-fil som google calendar kan importera. ");
             message = new JLabel();
+            message.setPreferredSize(new Dimension(500, 450));
             message.setFont(message.getFont().deriveFont(Font.BOLD, 24));
             add(message);
+            
+            message.setText("<html><div style='text-align: center;'>Dra hit och släpp din schema-fil från IKEA. <br><br>   Programmet kommer att generera en csv-fil som google calendar kan importera.</html>");
 
         }
 
         @Override
         public Dimension getPreferredSize() {
-            return new Dimension(400, 400);
+            return new Dimension(500, 450);
         }
 
         protected DropTarget getMyDropTarget() {
@@ -115,12 +124,29 @@ public class FileDropWindow {
             }
         }
 
-        protected void importFiles(final List files) {
+        protected void handleFiles(final List files) {
             Runnable run = new Runnable() {
                 @Override
                 public void run() {
-                    message.setText("You dropped " + files.size() + " files");
-                    message.setText("File was named: " + files.get(0));
+                    //message.setText("You dropped " + files.size() + " files");
+                	String filePath = files.get(0).toString();
+                    message.setText("Jobbar...");
+                    ScheduleParser scheduleParser = new ScheduleParser(filePath);
+                    message.setText("<html><div style='text-align: center;'>"
+                    		+ "Schema-filen är skapad. <br>"
+                    		+ "Du kan importera den i google calender <br>"
+                    		+ "genom följande steg: </div>"
+                    		+ "1. Gå in under 'inställningar' (litet<br>"
+                    		+ "kugghjul uppe till höger)<br>"
+                    		+ "2. Öppna fliken 'kalendrar'<br>"
+                    		+ "3. Klicka på 'importera kalendrar' mellan  <br>"
+                    		+ "avsnitten Mina kalendrar och Andra kalendrar. <br>"
+                    		+ "4. Välj filen, den heter som pdfen fast med <br>"
+                    		+ "tillägget _Google-calendar och ligger i<br>"
+                    		+ "samma mapp som pdfen.<br>"
+                    		+ "5. Välj rätt kalender och klicka på importera.<br>"
+                    		+ "6. Klar!"
+                    		+ "</html>");
                 }
             };
             SwingUtilities.invokeLater(run);
@@ -173,8 +199,8 @@ public class FileDropWindow {
                         List transferData = (List) transferable.getTransferData(DataFlavor.javaFileListFlavor);
                         if (transferData != null && transferData.size() > 0) {
 
-                        	System.out.println("Data: " + data);
-                            importFiles(transferData);
+                        	//System.out.println("Data: " + data);
+                            handleFiles(transferData);
                             dtde.dropComplete(true);
                         }
 
