@@ -33,7 +33,7 @@ public class FileDropWindow {
                 } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ex) {
                 }
 
-                JFrame frame = new JFrame("Testing");
+                JFrame frame = new JFrame("Schedule parser");
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.setLayout(new BorderLayout());
                 //frame.setSize(500, 400);
@@ -131,25 +131,53 @@ public class FileDropWindow {
                     //message.setText("You dropped " + files.size() + " files");
                 	String filePath = files.get(0).toString();
                     message.setText("Jobbar...");
-                    ScheduleParser scheduleParser = new ScheduleParser(filePath);
-                    message.setText("<html><div style='text-align: center;'>"
-                    		+ "Schema-filen är skapad. <br>"
-                    		+ "Du kan importera den i google calender <br>"
-                    		+ "genom följande steg: </div>"
-                    		+ "1. Gå in under 'inställningar' (litet<br>"
-                    		+ "kugghjul uppe till höger)<br>"
-                    		+ "2. Öppna fliken 'kalendrar'<br>"
-                    		+ "3. Klicka på 'importera kalendrar' mellan  <br>"
-                    		+ "avsnitten Mina kalendrar och Andra kalendrar. <br>"
-                    		+ "4. Välj filen, den heter som pdfen fast med <br>"
-                    		+ "tillägget _Google-calendar och ligger i<br>"
-                    		+ "samma mapp som pdfen.<br>"
-                    		+ "5. Välj rätt kalender och klicka på importera.<br>"
-                    		+ "6. Klar!"
-                    		+ "</html>");
+                    ScheduleParser scheduleParser = new ScheduleParser();
+                    int result = scheduleParser.parseSchedule(filePath);
+                    evaluateResult(result);
+                    
                 }
             };
             SwingUtilities.invokeLater(run);
+        }
+        
+        private void evaluateResult(int result) {
+        	if (result == 0) {
+        		message.setText("<html><div style='text-align: center;'>"
+                		+ "Schema-filen är skapad. <br>"
+                		+ "Du kan importera den i google calender <br>"
+                		+ "genom följande steg: </div>"
+                		+ "1. Gå in under 'inställningar' (litet<br>"
+                		+ "kugghjul uppe till höger)<br>"
+                		+ "2. Öppna fliken 'kalendrar'<br>"
+                		+ "3. Klicka på 'importera kalendrar' mellan  <br>"
+                		+ "avsnitten Mina kalendrar och Andra kalendrar. <br>"
+                		+ "4. Välj filen, den heter som pdfen fast med <br>"
+                		+ "tillägget _Google-calendar och ligger i<br>"
+                		+ "samma mapp som pdfen.<br>"
+                		+ "5. Välj rätt kalender och klicka på importera.<br>"
+                		+ "6. Klar!"
+                		+ "</html>");
+        	} else if (result == 1) {
+        		message.setText("<html><div style='text-align: center;'>"
+        				+ "Filen var inte en pdf-fil. <br>"
+        				+ "Kolla så att det är rätt fil, eller om den har<br>"
+        				+ "fel filändelse.</html>");
+        	} else if (result == 2) {
+        		message.setText("<html><div style='text-align: center;'>"
+        				+ "Det gick inte att hämta ut schema-event från filen. <br>"
+        				+ "Dubbelkolla att det är rätt fil, annars så kan det <br>"
+        				+ "vara så att filen använder ett annat format än vad <br>"
+        				+ "programmet är gjort för.</html>");
+        	} else if (result == 3) {
+        		message.setText("<html><div style='text-align: center;'>"
+        				+ "Det gick inte att skriva schema-filen.<br>"
+        				+ "Kolla skrivrättigheterna i mappen eller<br>"
+        				+ "testa igen, eller med en annan mapp,<br>"
+        				+ "kanske skrivbordet.</html>");
+        	} else {
+        		message.setText("<html><div style='text-align: center;'>"
+        				+ "Ett oväntat fel. <br>");
+        	}
         }
 
         protected class DropTargetHandler implements DropTargetListener {
