@@ -242,8 +242,10 @@ public class ScheduleParser {
 			boolean pm = false;
 			String[] parts = time.split(":");
 			int hour = Integer.parseInt(parts[0]);
-			if (hour > 12) { // TODO: Lägg till specialfall för 12:00	
+			if (hour > 12) {	
 				hour = hour - 12;
+				pm = true;
+			} else if (hour == 12) {
 				pm = true;
 			}
 			if (pm) {
