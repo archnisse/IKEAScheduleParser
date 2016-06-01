@@ -19,26 +19,47 @@ import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.util.PDFTextStripper;
 
-//import org.apache.pdfbox.searchengine.lucene.LucenePDFDocument;
-
 public class ScheduleParser {
 
-	ScheduleParser(String filePath) {
+	ScheduleParser() {
+	}
+	
+	/**
+	 * Parses a pdf file and returns an integer with the result code for the parsing.
+	 * 0 = success
+	 * 1 = not a pdf file / error while reading pdf file
+	 * 2 = Could not parse schedule events from the pdf
+	 * 3 = failed to write a new file. Check writing rights for the folder.
+	 * @param filePath
+	 * @return
+	 */
+	public int parseSchedule(String filePath) {
 		
 		String pdfText = readPdf(filePath);
+		
+		if (pdfText.equals("")) {
+			return 1;
+		}
+		
 		// Extract the data from the string and create a list of schedule
 		// classes.
 		ArrayList<Schedule> schedule = parsePdfText(pdfText);
+		
+		if (schedule.size() < 1) {
+			return 2;
+		}
 		
 		System.out.println("Collected " + schedule.size() + " basic events.");
 		
 		String newFilePath = generateNewFilePath(filePath);
 		
-		writeScheduleFile(schedule, newFilePath);
-
+		int writingFileSuccess = writeScheduleFile(schedule, newFilePath);
+		
+		
+		return writingFileSuccess;
 	}
 	
-	private void writeScheduleFile(ArrayList<Schedule> schedule, String filePath) {
+	private int writeScheduleFile(ArrayList<Schedule> schedule, String filePath) {
 		try {
 			FileWriter writer = new FileWriter(filePath);
 			writer.append("Subject,");
@@ -48,6 +69,7 @@ public class ScheduleParser {
 			writer.append("End Time");
 			writer.append("\n");
 			/*
+			 * Exempel på kalender-innehåll:
 			 * Subject
 				Namnet på händelsen, krävs.
 				Exempel: Slutprov
@@ -79,8 +101,10 @@ public class ScheduleParser {
 
 			writer.flush();
 			writer.close();
+			return 0;
 		} catch (IOException e) {
 			e.printStackTrace();
+			return 3;
 		}
 	}
 	
@@ -218,7 +242,7 @@ public class ScheduleParser {
 			boolean pm = false;
 			String[] parts = time.split(":");
 			int hour = Integer.parseInt(parts[0]);
-			if (hour > 12) {
+			if (hour > 12) { // TODO: Lägg till specialfall för 12:00	
 				hour = hour - 12;
 				pm = true;
 			}
