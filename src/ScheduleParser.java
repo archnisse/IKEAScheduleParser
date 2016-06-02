@@ -247,6 +247,8 @@ public class ScheduleParser {
 				pm = true;
 			} else if (hour == 12) {
 				pm = true;
+			} else if (hour == 0) {
+				hour = 12;
 			}
 			if (pm) {
 				return hour + ":" + parts[1] + " PM";
